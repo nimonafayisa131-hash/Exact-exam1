@@ -10,7 +10,13 @@
 <!-- PWA: makes the site installable as an app on phones -->
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#004346">
-<link rel="apple-touch-icon" href="logo1.jpg">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<!-- iPhone/iPad: app-iin screen guutuu banamu (Safari bar malee) -->
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="WDDBA Exam">
 <script>
   // Applied here (before <body> paints) rather than in script.js, so the
   // page never flashes light-mode-then-dark-mode on reload for someone
@@ -69,6 +75,9 @@
     <a href="javascript:void(0)" id="navbar-contact-link" class="navbar-admin-link" style="display:none" onclick="showScreen('screen-contact-us')">📞 Contact Us</a>
     <!-- Dark mode toggle — always visible, on the right of the header.
          See toggleDarkMode() in script.js. -->
+    <!-- Install App button — browser'n "install" yoo eeyyame qofa mul'ata
+         (PWA script gad jiru). Android/Chrome/Edge irratti app taasisa. -->
+    <button type="button" id="navbar-install-btn" class="navbar-admin-link navbar-theme-btn" style="display:none" title="Install as app">📲 Install App</button>
     <button type="button" id="navbar-theme-toggle" class="navbar-admin-link navbar-theme-btn" onclick="toggleDarkMode()" title="Toggle dark mode">🌙</button>
   </div>
 </nav>
@@ -1049,12 +1058,50 @@
 <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database-compat.js"></script>
 <script src="script.js"></script>
 
-<!-- PWA: registers the service worker so the app can be installed and
-     used offline. Safe no-op on browsers that don't support it. -->
+<!-- PWA: service worker galmeessa (offline hojjachuuf) + "Install App" button.
+     Browser'n service worker deeggaru hin qabne taanaan wanti tokkollee hin balleessu. -->
 <script>
+  // 1) Service worker galmeessi — app interneetii malee akka banamuuf
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('service-worker.js').catch(console.error);
+    });
+  }
+
+  // 2) Install App button (Android / Chrome / Edge)
+  let deferredInstallPrompt = null;
+  const installBtn = document.getElementById('navbar-install-btn');
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+                       || window.navigator.standalone === true;
+
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();                 // banner ofii isaa hin mul'anne
+    deferredInstallPrompt = e;
+    if (installBtn && !isStandalone) installBtn.style.display = '';
+  });
+
+  if (installBtn) {
+    installBtn.addEventListener('click', async () => {
+      if (!deferredInstallPrompt) return;
+      deferredInstallPrompt.prompt();
+      await deferredInstallPrompt.userChoice;
+      deferredInstallPrompt = null;
+      installBtn.style.display = 'none';
+    });
+  }
+
+  // Install ta'ee booda button dhoksi
+  window.addEventListener('appinstalled', () => {
+    deferredInstallPrompt = null;
+    if (installBtn) installBtn.style.display = 'none';
+  });
+
+  // 3) iPhone/iPad (Safari): beforeinstallprompt hin jiru — qajeelfama gabaabaa agarsiisi
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  if (isIOS && !isStandalone && installBtn) {
+    installBtn.style.display = '';
+    installBtn.addEventListener('click', () => {
+      alert('iPhone/iPad irratti: Safari keessatti "Share" (⬆️) tuqi, achiis "Add to Home Screen" filadhu.');
     });
   }
 </script>
